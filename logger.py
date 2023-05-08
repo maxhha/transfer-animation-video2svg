@@ -13,7 +13,6 @@ import torch.nn.functional as F
 import imageio
 
 import os
-from skimage.draw import circle
 
 import matplotlib.pyplot as plt
 import collections
@@ -65,7 +64,7 @@ class Logger:
     @staticmethod
     def load_cpk(checkpoint_path, generator=None, region_predictor=None, bg_predictor=None, avd_network=None,
                  optimizer_reconstruction=None, optimizer_avd=None):
-        checkpoint = torch.load(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
         if generator is not None:
             generator.load_state_dict(checkpoint['generator'])
         if region_predictor is not None:
@@ -76,7 +75,7 @@ class Logger:
             if 'avd_network' in checkpoint:
                 avd_network.load_state_dict(checkpoint['avd_network'])
 
-        if optimizer_reconstruction is not None:
+        if optimizer_reconstruction is not None and 'optimizer_reconstruction' in checkpoint:
             optimizer_reconstruction.load_state_dict(checkpoint['optimizer_reconstruction'])
             return checkpoint['epoch_reconstruction']
 
@@ -141,12 +140,13 @@ class Visualizer:
         self.region_bg_color = np.array(region_bg_color)
 
     def draw_image_with_kp(self, image, kp_array):
+        from skimage.draw import disk
         image = np.copy(image)
         spatial_size = np.array(image.shape[:2][::-1])[np.newaxis]
         kp_array = spatial_size * (kp_array + 1) / 2
         num_regions = kp_array.shape[0]
         for kp_ind, kp in enumerate(kp_array):
-            rr, cc = circle(kp[1], kp[0], self.kp_size, shape=image.shape[:2])
+            rr, cc = disk((kp[1], kp[0]), self.kp_size, shape=image.shape[:2])
             image[rr, cc] = np.array(self.colormap(kp_ind / num_regions))[:3]
         return image
 
