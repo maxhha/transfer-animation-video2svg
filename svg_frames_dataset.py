@@ -78,10 +78,10 @@ class SVGFramesDataset(Dataset):
     def _svg_params(self, shapes, shape_groups, svg_name):
         all_points = torch.zeros(self.max_svg_dict['shapes'], self.max_svg_dict['points'], 2, dtype=torch.float32)
         all_points_n = torch.zeros(self.max_svg_dict['shapes'], dtype=torch.int32)
-        all_num_control_points = torch.zeros(max_svg_dict['shapes'], max_svg_dict['num_control_points'], dtype=torch.int32)
-        all_num_control_points_n = torch.zeros(max_svg_dict['shapes'], dtype=torch.int32)
-        all_stroke_width = torch.zeros(max_svg_dict['shapes'], dtype=torch.float32)
-        all_ids = ['' for _ in range(max_svg_dict['shapes'])]
+        all_num_control_points = torch.zeros(self.max_svg_dict['shapes'], self.max_svg_dict['num_control_points'], dtype=torch.int32)
+        all_num_control_points_n = torch.zeros(self.max_svg_dict['shapes'], dtype=torch.int32)
+        all_stroke_width = torch.zeros(self.max_svg_dict['shapes'], dtype=torch.float32)
+        all_ids = ['' for _ in range(self.max_svg_dict['shapes'])]
 
         assert len(shapes) <= self.max_svg_dict['shapes']
         for shape_i, shape in enumerate(shapes):
@@ -96,11 +96,11 @@ class SVGFramesDataset(Dataset):
             all_stroke_width[shape_i] = shape.stroke_width
             all_ids[shape_i] = shape.id
         
-        all_shape_ids = torch.zeros(max_svg_dict['shape_groups'], max_svg_dict['shape_ids'], dtype=torch.int32)
-        all_shape_ids_n = torch.zeros(max_svg_dict['shape_groups'], dtype=torch.int32)
-        all_fill_color = torch.zeros(max_svg_dict['shape_groups'], 4, dtype=torch.float32)
-        all_use_even_odd_rule = torch.zeros(max_svg_dict['shape_groups'], dtype=torch.bool)
-        all_stroke_color = torch.zeros(max_svg_dict['shape_groups'], 4, dtype=torch.float32)
+        all_shape_ids = torch.zeros(self.max_svg_dict['shape_groups'], self.max_svg_dict['shape_ids'], dtype=torch.int32)
+        all_shape_ids_n = torch.zeros(self.max_svg_dict['shape_groups'], dtype=torch.int32)
+        all_fill_color = torch.zeros(self.max_svg_dict['shape_groups'], 4, dtype=torch.float32)
+        all_use_even_odd_rule = torch.zeros(self.max_svg_dict['shape_groups'], dtype=torch.bool)
+        all_stroke_color = torch.zeros(self.max_svg_dict['shape_groups'], 4, dtype=torch.float32)
         
         assert len(shape_groups) <= self.max_svg_dict['shape_groups']
         for g_i, g in enumerate(shape_groups):
