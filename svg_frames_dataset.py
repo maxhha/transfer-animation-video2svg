@@ -40,7 +40,7 @@ class SVGFramesDataset(Dataset):
         }
         set_needed_svgs = set(self.svg_map.values())
         set_existing_svgs = set(os.listdir(self.svg_dir))
-        assert set_needed_svgs.issubset(set_existing_svgs), f'Missing svgs: {",".join(s.et_needed_svgs.difference(set_existing_svgs))}'
+        assert set_needed_svgs.issubset(set_existing_svgs), f'Missing svgs: {",".join(set_needed_svgs.difference(set_existing_svgs))}'
 
     def __len__(self):
         return len(self.videos)
@@ -137,9 +137,9 @@ class SVGFramesDataset(Dataset):
 
         if self.is_train:
             frame_idx = np.random.choice(num_frames, replace=True, size=1)
+            video_array = video_array[frame_idx][..., :3]
         else:
-            frame_idx = range(num_frames)
-            
+            raise NotImplementedError()
 
         out = {}
         if self.is_train:
@@ -149,6 +149,7 @@ class SVGFramesDataset(Dataset):
             shapes, shape_groups = self._load_svg(svg_path)
             source = self._render_svg(shapes, shape_groups)
 
+            out['num_frames'] = num_frames
             out['driving'] = driving           
             out['source'] = source
 #             out['shapes'] = shapes

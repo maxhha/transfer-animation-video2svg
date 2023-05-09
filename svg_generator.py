@@ -28,7 +28,7 @@ class SVGGenerator(torch.nn.Module):
                     points = points[b, i, :points_n[b, i]],
                     is_closed = True,
                     stroke_width = stroke_width[b, i],
-                    id = shape_ids[b][i],
+                    id = shape_ids[i][b],
                 ))
 
             shape_groups = []
@@ -64,6 +64,8 @@ class SVGGenerator(torch.nn.Module):
         d_shift = (driving_region_params['shift'] + 1) / 2 * torch.tensor(image_size)
         
         affine_m = torch.matmul(source_region_params['affine'], torch.inverse(driving_region_params['affine']))
+        sign = torch.sign(affine_m[:, :, 0:1, 0:1])
+        affine_m *= sign
     
         points_m -= s_shift.expand(points_size, -1, -1, -1).permute(1, 2, 0, 3)        
         points_m = points_m @ affine_m
