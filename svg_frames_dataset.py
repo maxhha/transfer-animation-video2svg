@@ -9,13 +9,10 @@ import pydiffvg
 def rgba2rgb(img):
     return img[..., :3].permute(2, 0, 1) * img[..., 3] + (1 - img[..., 3])
 
-# pydiffvg.set_use_gpu(torch.cuda.is_available())
-# pydiffvg.set_use_gpu(False)
-
 FILE_NAME_REG = re.compile(r'^(?P<name>.+?)(?P<index> \(\d+\))?\.(?P<type>mp4|svg)$')
 
 class SVGFramesDataset(Dataset):
-    def __init__(self, root_dir, frame_shape=(256, 256, 3), is_train=True, max_svg_dict=None):
+    def __init__(self, root_dir, frame_shape=(256, 256, 3), is_train=True, max_svg_dict=None, render_dir=None, **kwargs):
         self.root_dir = root_dir
         self.is_train = is_train
         self.frame_shape = frame_shape
@@ -32,6 +29,7 @@ class SVGFramesDataset(Dataset):
         
         self.video_dir = os.path.join(root_dir, 'video')
         self.svg_dir = os.path.join(root_dir, 'svg')
+        self.render_dir = os.path.join(root_dir, 'render' if render_dir is None else render_dir)
     
         self.videos = os.listdir(self.video_dir)
         self.svg_map = {
@@ -41,6 +39,11 @@ class SVGFramesDataset(Dataset):
         set_needed_svgs = set(self.svg_map.values())
         set_existing_svgs = set(os.listdir(self.svg_dir))
         assert set_needed_svgs.issubset(set_existing_svgs), f'Missing svgs: {",".join(set_needed_svgs.difference(set_existing_svgs))}'
+        
+        self.render_map = {
+            svg_name: (svg_name + ".png") if os.path.exists(os.path.join(self.render_dir, svg_name + ".png")) else None
+            for svg_name in set_needed_svgs
+        }
 
     def __len__(self):
         return len(self.videos)
@@ -85,7 +88,7 @@ class SVGFramesDataset(Dataset):
 
         assert len(shapes) <= self.max_svg_dict['shapes']
         for shape_i, shape in enumerate(shapes):
-            assert isinstance(shape, (pydiffvg.shape.Path,)), f"Supports only path tags in svg, but get {shape.__class__.__name__} in {svg_name}"
+            assert isinstance(shape, (pydiffvg.Path,)), f"Supports only path tags in svg, but get {shape.__class__.__name__} in {svg_name}"
             assert shape.is_closed, f"All paths must be closed in {svg_name}"
             assert shape.points.shape[0] <= self.max_svg_dict['points'], f"points in path({shape.points.shape[0]}) greater than size({self.max_svg_dict['points']}) in {svg_name}"
 
@@ -147,7 +150,13 @@ class SVGFramesDataset(Dataset):
             svg_name = self.svg_map[video_name]
             svg_path = os.path.join(self.svg_dir, svg_name)
             shapes, shape_groups = self._load_svg(svg_path)
-            source = self._render_svg(shapes, shape_groups)
+            
+            render_svg_name = self.render_map.get(svg_name)
+            
+            if render_svg_name:
+                source = read_video(os.path.join(self.render_dir, render_svg_name), self.frame_shape[:2])[0].transpose((2, 0, 1))
+            else:
+                source = self._render_svg(shapes, shape_groups)
 
             out['num_frames'] = num_frames
             out['driving'] = driving           
