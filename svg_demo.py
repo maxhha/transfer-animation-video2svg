@@ -36,7 +36,7 @@ def get_animation_region_params(source_region_params, driving_region_params, dri
         return new_region_params
 
 @torch.no_grad()
-def make_animation(canvas_w, canvas_h, shapes, shape_groups, svg_name, region_predictor, generator, animation_mode='relative'):
+def make_animation(canvas_w, canvas_h, shapes, shape_groups, svg_name, driving_video, region_predictor, generator, animation_mode='relative'):
     source_image = SVGFramesDataset.render_svg(shapes, shape_groups, (canvas_w, canvas_h)).numpy()
     max_svg_dict = SVGFramesDataset.get_max_svg_dict(shapes, shape_groups, svg_name)
     svg_params = SVGFramesDataset.svg_params(shapes, shape_groups, svg_name, max_svg_dict)
