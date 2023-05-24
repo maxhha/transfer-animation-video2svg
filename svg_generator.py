@@ -5,20 +5,18 @@ def rgba2rgb(img):
     return img[..., :3].permute(2, 0, 1) * img[..., 3] + (1 - img[..., 3])
 
 class SVGGenerator(torch.nn.Module):
-    def __init__(self, num_channels, num_regions, use_cpu=False, sigma=1., epsilon=1e-3):
+    def __init__(self, num_channels, num_regions, use_cpu=False, with_raster=True, sigma=1., epsilon=1e-3):
         super().__init__()
         self.num_channels = num_channels
         self.num_regions = num_regions
         self.use_cuda = not use_cpu
         self.sigma = sigma
+        self.with_raster = with_raster
         self.epsilon = epsilon
 
-    def _render_svg(self, canvas_size, points, points_n, shape_groups_n, shapes_n, num_control_points, num_control_points_n, stroke_width, shape_ids, group_shape_ids, group_shape_ids_n, fill_color, use_even_odd_rule, stroke_color):
-        canvas_w, canvas_h = canvas_size
+    @classmethod
+    def from_svg_params(self, points, points_n, shape_groups_n, shapes_n, num_control_points, num_control_points_n, stroke_width, shape_ids, group_shape_ids, group_shape_ids_n, fill_color, use_even_odd_rule, stroke_color, **kwargs):
         batch_size = points.shape[0]
-                
-        render = pydiffvg.RenderFunction.apply
-        results = []
 
         for b in range(batch_size):
             shapes = []
@@ -39,9 +37,18 @@ class SVGGenerator(torch.nn.Module):
                     use_even_odd_rule = use_even_odd_rule[b, i],
                     stroke_color = stroke_color[b, i]
                 ))
+            
+            yield shapes, shape_groups
 
+    def _render_svg(self, canvas_size, svg_params):
+        canvas_w, canvas_h = canvas_size
+
+        render = pydiffvg.RenderFunction.apply
+        results = []
+
+        for shapes, shape_groups in self.from_svg_params(**svg_params):
             scene_args = pydiffvg.RenderFunction.serialize_scene(canvas_w, canvas_h, shapes, shape_groups)
-                
+
             r = render(
                 canvas_w, # width
                 canvas_h, # height
@@ -51,7 +58,7 @@ class SVGGenerator(torch.nn.Module):
                 None, # background_image
                 *scene_args
             )
-            
+
             results.append(rgba2rgb(r))
 
         return torch.stack(results)
@@ -116,8 +123,12 @@ class SVGGenerator(torch.nn.Module):
         svg = svg_params.copy()
         svg['points'] = new_points
 
-        prediction = self._render_svg(image_size, **svg)
-        if self.use_cuda:
-            prediction = prediction.cuda()
-        
-        return {'prediction': prediction, 'svg': svg }
+        result = {'svg': svg }
+
+        if self.with_raster:
+            prediction = self._render_svg(image_size, svg_params=svg)
+            if self.use_cuda:
+                prediction = prediction.cuda()
+            result['prediction'] = prediction
+
+        return result
