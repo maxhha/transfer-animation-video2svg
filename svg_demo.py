@@ -135,7 +135,7 @@ def save_svg(width, height, shapes, shape_groups, animated_shapes):
         if shape_group.stroke_color is not None:
             add_color(shape_group.stroke_color, 'shape_{}_stroke'.format(i))
     
-    for i, shape_group in enumerate(tqdm(shape_groups)):
+    for i, shape_group in enumerate(shape_groups):
         shape_node = etree.SubElement(g, 'path')
         if shape_group.use_even_odd_rule:
             shape_node.set('style', "fill-rule: evenodd")
